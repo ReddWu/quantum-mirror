@@ -26,9 +26,9 @@ export async function POST(req: Request) {
   }
 
   const summary = [
-    `目标:${goal.title}`,
-    `感受:${reflection_text || "无"}`,
-    `上下文:${session_context_summary || "无"}`,
+    `Goal:${goal.title}`,
+    `Reflection:${reflection_text || "none"}`,
+    `Session context:${session_context_summary || "none"}`,
   ].join(" | ");
 
   const ai = await generateCheckinFeedback(summary);
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       actionTaskId: action_task_id,
       photoUrl: cloudUrl,
       reflectionText: reflection_text,
-      aiFeedbackText: `${ai.feedback}\n可持续:${ai.one_small_sustainment}\n明日:${ai.next_prompt}`,
+      aiFeedbackText: `${ai.feedback}\nSustainment:${ai.one_small_sustainment}\nTomorrow:${ai.next_prompt}`,
     },
   });
 
@@ -48,4 +48,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ...ai, checkin_id: checkin.id });
 }
-

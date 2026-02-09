@@ -17,10 +17,10 @@ export async function POST(req: Request) {
   }
   const { session_id, context, goal } = parsed.data;
   const summary = [
-    `目标:${goal.title}`,
-    `聊天摘要:${context.chat_summary}`,
-    `差异:${JSON.stringify(context.future_deltas || [])}`,
-    `约束:${JSON.stringify(context.constraints || {})}`,
+    `Goal:${goal.title}`,
+    `Chat summary:${context.chat_summary}`,
+    `Future deltas:${JSON.stringify(context.future_deltas || [])}`,
+    `Constraints:${JSON.stringify(context.constraints || {})}`,
   ].join(" | ");
 
   const ai = await generateActionTask(summary);
@@ -37,4 +37,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ action_task: { ...ai.action_task, id: task.id } });
 }
-

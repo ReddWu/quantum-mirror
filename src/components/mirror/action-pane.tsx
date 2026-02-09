@@ -29,6 +29,7 @@ export function ActionPane() {
 
   const generate = async () => {
     if (!goal || !sessionId || !chatSummary) return;
+
     setLoading(true);
     const res = await fetch("/api/mirror/action/generate", {
       method: "POST",
@@ -46,6 +47,7 @@ export function ActionPane() {
 
   const checkin = async () => {
     if (!action?.id || !goal || !photoUrl) return;
+
     setLoading(true);
     const res = await fetch("/api/mirror/action/checkin", {
       method: "POST",
@@ -63,152 +65,102 @@ export function ActionPane() {
   };
 
   if (!goal || !sessionId) {
-    return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        需要目标与已启动的 session。
-      </div>
-    );
+    return <div className="qm-warning p-4 text-sm">A goal and an active session are required.</div>;
   }
 
   return (
     <div className="space-y-4">
       {!action && (
-        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <section className="qm-panel space-y-4 p-6">
           <div>
-            <label className="text-sm font-medium text-zinc-700">
-              Chat summary / future deltas
-            </label>
+            <label className="qm-label">Chat summary / future deltas</label>
             <textarea
-              rows={4}
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-              placeholder="粘贴聊天摘要或差异点..."
+              rows={5}
+              className="qm-textarea mt-2"
+              placeholder="Paste key insights from chat or reframe..."
               value={chatSummary}
               onChange={(e) => setChatSummary(e.target.value)}
             />
-            <p className="mt-1.5 text-xs text-zinc-500">
-              从对话或重构中获得的关键洞察
-            </p>
+            <p className="mt-1.5 text-xs text-[var(--muted)]">This context is used to generate a practical task for today.</p>
           </div>
-          <button
-            onClick={generate}
-            disabled={loading}
-            className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
-          >
+
+          <button onClick={generate} disabled={loading} className="qm-button w-full py-2.5 text-base">
             {loading ? "Generating..." : "Collapse into action"}
           </button>
-        </div>
+        </section>
       )}
 
       {action && (
-        <div className="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+        <section className="qm-panel space-y-4 p-6">
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                Today&apos;s action
-              </div>
-            </div>
-            <div className="text-lg font-bold text-emerald-900">{action.title}</div>
-            <div className="mt-1 flex items-center gap-3 text-xs text-emerald-700">
-              <span className="flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {action.estimated_minutes} mins
-              </span>
-              <span className="flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                photo required
-              </span>
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Today&apos;s action</div>
+            <h2 className="mt-1 text-3xl text-[#1f1f1b]">{action.title}</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">Estimated time: {action.estimated_minutes} minutes</p>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-white p-4">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              Steps
-            </div>
-            <ol className="list-decimal space-y-2 pl-5 text-sm text-emerald-900">
+
+          <div className="qm-subtle p-4">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Steps</div>
+            <ol className="list-decimal space-y-1.5 pl-5 text-sm text-[#1f1f1b]">
               {action.instructions?.map((step, idx) => (
-                <li key={idx} className="leading-relaxed">{step}</li>
+                <li key={idx}>{step}</li>
               ))}
             </ol>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-white p-3 text-xs italic text-emerald-800">
+
+          <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm italic text-[var(--muted)]">
             {action.rationale}
-          </div>
-        </div>
+          </p>
+        </section>
       )}
 
       {action && !feedback && (
-        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="text-sm font-semibold text-zinc-800">Check in</div>
+        <section className="qm-panel space-y-4 p-6">
+          <h3 className="text-2xl text-[#1f1f1b]">Check in</h3>
+
           <div>
-            <label className="text-sm font-medium text-zinc-700">
-              Upload proof (URL)
-            </label>
+            <label className="qm-label">Proof photo URL</label>
             <input
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              className="qm-input mt-2"
               placeholder="https://..."
               value={photoUrl}
               onChange={(e) => setPhotoUrl(e.target.value)}
             />
           </div>
+
           <div>
-            <label className="text-sm font-medium text-zinc-700">
-              Reflection (optional)
-            </label>
+            <label className="qm-label">Reflection (optional)</label>
             <textarea
-              rows={3}
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-              placeholder="完成后的感受..."
+              rows={4}
+              className="qm-textarea mt-2"
+              placeholder="How did it feel after completing this action?"
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
             />
           </div>
-          <button
-            onClick={checkin}
-            disabled={loading}
-            className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
-          >
+
+          <button onClick={checkin} disabled={loading} className="qm-button w-full py-2.5 text-base">
             {loading ? "Submitting..." : "I did it"}
           </button>
-        </div>
+        </section>
       )}
 
       {feedback && (
-        <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="text-sm font-semibold text-emerald-900">AI feedback</div>
+        <section className="qm-panel space-y-3 p-6">
+          <h3 className="text-2xl text-[#1f1f1b]">AI feedback</h3>
+
+          <div className="qm-subtle p-4 text-sm leading-relaxed text-[#1f1f1b]">{feedback.feedback}</div>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Sustainment tip</div>
+            <p className="text-sm text-[#1f1f1b]">{feedback.one_small_sustainment}</p>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-white p-4 text-sm text-emerald-900">
-            {feedback.feedback}
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Tomorrow prompt</div>
+            <p className="text-sm text-[#1f1f1b]">{feedback.next_prompt}</p>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-white p-3">
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              可持续建议
-            </div>
-            <div className="text-sm text-emerald-800">{feedback.one_small_sustainment}</div>
-          </div>
-          <div className="rounded-lg border border-emerald-200 bg-white p-3">
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              明日提示
-            </div>
-            <div className="text-sm text-emerald-800">{feedback.next_prompt}</div>
-          </div>
-        </div>
+        </section>
       )}
     </div>
   );
 }
-

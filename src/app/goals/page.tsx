@@ -3,17 +3,19 @@ import { GoalList } from "@/components/mirror/goal-list";
 
 export default function GoalsPage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-12">
-      <div className="text-center">
-        <h1 className="text-4xl font-light tracking-tight text-[#2B3E5F]">Goals</h1>
-        <p className="mt-4 text-lg text-[#6B8CAE]">
-          Manage your goals and chat with your future self for each one
+    <div className="mx-auto max-w-5xl space-y-8">
+      <section className="space-y-3">
+        <div className="qm-kicker">Goal library</div>
+        <h1 className="text-5xl text-[#1f1f1b]">Goals</h1>
+        <p className="max-w-2xl text-[15px] leading-relaxed text-[var(--muted)]">
+          Create clear goal narratives and select one as the anchor for your daily mirror session.
         </p>
-      </div>
-      <div className="grid gap-8 lg:grid-cols-2">
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
         <GoalForm />
         <GoalList />
-      </div>
+      </section>
     </div>
   );
 }

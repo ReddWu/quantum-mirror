@@ -1,22 +1,26 @@
 'use client';
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSessionStore } from "@/stores/useSessionStore";
 
 type Message = {
   id: string;
-  type: 'user' | 'assistant';
+  type: "user" | "assistant";
   content: string;
   timestamp: Date;
-  label?: string; // For assistant messages: "Future Self Reply", "Gentle Challenge", etc.
+  label?: string;
+  isStreaming?: boolean;
 };
 
-type ChatResponse = {
-  reply: string;
-  gentle_challenge_question: string;
-  narrative_rewrite: string;
-  next_step?: { suggest_photo_anchor: boolean; suggest_action_collapse: boolean };
+type JsonChatResponse = {
   safe_block?: boolean;
+  message?: string;
+  error?: string;
+};
+
+type StreamPayload = {
+  text?: string;
+  reply?: string;
   message?: string;
 };
 
@@ -58,18 +62,49 @@ export function ChatPane() {
     if (data.session?.id) setSession(data.session.id);
   };
 
+  const patchMessage = (id: string, updater: (msg: Message) => Message) => {
+    setMessages((prev) => prev.map((msg) => (msg.id === id ? updater(msg) : msg)));
+  };
+
+  const parseSseEvent = (rawEvent: string): { event: string; data: string } | null => {
+    const trimmed = rawEvent.trim();
+    if (!trimmed) return null;
+
+    let event = "message";
+    const dataLines: string[] = [];
+
+    for (const line of trimmed.split("\n")) {
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trim());
+      }
+    }
+
+    return { event, data: dataLines.join("\n") };
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!goal || !sessionId || !input.trim()) return;
-    
+
+    const now = Date.now();
     const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
+      id: `${now}`,
+      type: "user",
       content: input,
       timestamp: new Date(),
     };
-    
-    setMessages(prev => [...prev, userMessage]);
+    const assistantMessageId = `${now + 1}`;
+    const assistantPlaceholder: Message = {
+      id: assistantMessageId,
+      type: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
     setInput("");
     setLoading(true);
 
@@ -83,54 +118,110 @@ export function ChatPane() {
           user_message: userMessage.content,
         }),
       });
-      
-      const data: ChatResponse = await res.json();
-      
-      if (data.safe_block) {
-        const safetyMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: data.message || "Safety notice triggered",
-          timestamp: new Date(),
-          label: "Safety Notice",
-        };
-        setMessages(prev => [...prev, safetyMessage]);
-      } else {
-        const aiMessages: Message[] = [
-          {
-            id: (Date.now() + 1).toString(),
-            type: 'assistant',
-            content: data.reply,
-            timestamp: new Date(),
-            label: "Future Self",
-          },
-          {
-            id: (Date.now() + 2).toString(),
-            type: 'assistant',
-            content: data.gentle_challenge_question,
-            timestamp: new Date(),
-            label: "Gentle Challenge",
-          },
-          {
-            id: (Date.now() + 3).toString(),
-            type: 'assistant',
-            content: data.narrative_rewrite,
-            timestamp: new Date(),
-            label: "Narrative Rewrite",
-          },
-        ];
-        setMessages(prev => [...prev, ...aiMessages]);
+
+      const contentType = res.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const data: JsonChatResponse = await res.json();
+
+        if (data.safe_block) {
+          patchMessage(assistantMessageId, (msg) => ({
+            ...msg,
+            content: data.message || "Safety notice triggered",
+            label: "Safety Notice",
+            isStreaming: false,
+          }));
+        } else {
+          patchMessage(assistantMessageId, (msg) => ({
+            ...msg,
+            content: data.error || data.message || "Sorry, something went wrong.",
+            label: "Error",
+            isStreaming: false,
+          }));
+        }
+        return;
+      }
+
+      if (!res.body) {
+        throw new Error("Missing response body for streamed chat");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawDone = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        let eventBreakIndex = buffer.indexOf("\n\n");
+        while (eventBreakIndex !== -1) {
+          const rawEvent = buffer.slice(0, eventBreakIndex);
+          buffer = buffer.slice(eventBreakIndex + 2);
+
+          const parsedEvent = parseSseEvent(rawEvent);
+          if (!parsedEvent) {
+            eventBreakIndex = buffer.indexOf("\n\n");
+            continue;
+          }
+
+          let payload: StreamPayload = {};
+          if (parsedEvent.data) {
+            try {
+              payload = JSON.parse(parsedEvent.data) as StreamPayload;
+            } catch {
+              payload = {};
+            }
+          }
+
+          if (parsedEvent.event === "delta" && payload.text) {
+            patchMessage(assistantMessageId, (msg) => ({
+              ...msg,
+              content: msg.content + payload.text,
+              isStreaming: true,
+            }));
+          }
+
+          if (parsedEvent.event === "error") {
+            patchMessage(assistantMessageId, (msg) => ({
+              ...msg,
+              content: payload.message || "Failed to stream assistant reply.",
+              label: "Error",
+              isStreaming: false,
+            }));
+            sawDone = true;
+          }
+
+          if (parsedEvent.event === "done") {
+            patchMessage(assistantMessageId, (msg) => ({
+              ...msg,
+              content: payload.reply || msg.content,
+              isStreaming: false,
+            }));
+            sawDone = true;
+          }
+
+          eventBreakIndex = buffer.indexOf("\n\n");
+        }
+      }
+
+      if (!sawDone) {
+        patchMessage(assistantMessageId, (msg) => ({
+          ...msg,
+          isStreaming: false,
+        }));
       }
     } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
+      console.error("Chat error:", error);
+      patchMessage(assistantMessageId, (msg) => ({
+        ...msg,
         content: "Sorry, something went wrong. Please try again.",
-        timestamp: new Date(),
         label: "Error",
-      };
-      setMessages(prev => [...prev, errorMessage]);
+        isStreaming: false,
+      }));
     } finally {
       setLoading(false);
     }
@@ -138,24 +229,22 @@ export function ChatPane() {
 
   if (!goal) {
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-        <p className="text-sm text-amber-800">
-          Please select or create a goal to start chatting with your future self.
-        </p>
+      <div className="flex h-full items-center justify-center p-7">
+        <div className="qm-warning max-w-lg p-4 text-sm text-center">
+          Please select or create a goal before starting your future-self chat.
+        </div>
       </div>
     );
   }
 
   if (!sessionId) {
     return (
-      <div className="flex h-full flex-col items-center justify-center space-y-4 rounded-xl border border-indigo-200 bg-indigo-50 p-6 text-center">
-        <p className="text-sm text-indigo-700">
-          Today&apos;s session hasn&apos;t started yet.
-        </p>
-        <button
-          onClick={startSession}
-          className="rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
-        >
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-7 text-center">
+        <div className="qm-subtle max-w-lg p-5">
+          <h2 className="text-2xl text-[#1f1f1b]">Session not started</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">Start today&apos;s session to open your chat thread.</p>
+        </div>
+        <button onClick={startSession} className="qm-button px-6 py-2.5">
           Start today&apos;s session
         </button>
       </div>
@@ -163,128 +252,85 @@ export function ChatPane() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#F5EFE6] to-[#E8DFD0]">
-      {/* Chat Header */}
-      <div className="border-b border-[#D4C5B0] bg-[#E07B39] px-4 py-4 shadow-sm sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="truncate text-base font-semibold text-white">Future Self</h2>
-            <p className="truncate text-sm text-white/80">{goal.title}</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex h-full flex-col bg-[var(--surface)]">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Future self</p>
+        <h2 className="mt-1 text-2xl text-[#1f1f1b]">{goal.title}</h2>
+      </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+      <section className="flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,#fcfbf7_0%,#f5f2e8_100%)] p-5 sm:p-6">
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#B4C7B4]/30">
-                <svg className="h-10 w-10 text-[#6B8E6B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+            <div className="max-w-md text-center">
+              <div className="mb-4 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Prompt
               </div>
-              <p className="text-base text-[#6B8E6B] font-medium">
-                Start a conversation with your future self
-              </p>
-              <p className="mt-2 text-sm text-[#A0B0A0]">
-                Share your thoughts, concerns, or questions
-              </p>
+              <p className="text-xl font-semibold text-[#1f1f1b]">Start with one honest sentence.</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">State what you avoid, what you want, or where today can still be recovered.</p>
             </div>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`group relative max-w-[80%] space-y-1 sm:max-w-lg ${
-                msg.type === 'user' ? 'items-end' : 'items-start'
-              }`}
-            >
-              {msg.label && (
-                <div className="px-4 text-xs font-medium text-[#8B9E8B]">
-                  {msg.label}
-                </div>
-              )}
+          <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
+            <div className="max-w-[86%] space-y-1 sm:max-w-[70%]">
+              {msg.label && <div className="px-1 text-xs font-semibold text-[#8a5f0f]">{msg.label}</div>}
               <div
-                className={`rounded-2xl px-5 py-3 shadow-sm ${
-                  msg.type === 'user'
-                    ? 'rounded-tr-sm bg-[#E07B39] text-white'
-                    : 'rounded-tl-sm bg-white text-[#3D3D3D] ring-1 ring-[#D4C5B0]'
+                className={`rounded-2xl px-4 py-3 shadow-sm ${
+                  msg.type === "user"
+                    ? "rounded-tr-md bg-[#1f1f1b] text-white"
+                    : "rounded-tl-md border border-[var(--border)] bg-[var(--surface)] text-[#1f1f1b]"
                 }`}
               >
-                <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {msg.content}
-                </p>
+                {msg.isStreaming && !msg.content ? (
+                  <div className="flex items-center gap-1.5 py-1">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)] [animation-delay:0.2s]" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[var(--accent)] [animation-delay:0.4s]" />
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{msg.content}</p>
+                )}
               </div>
-              <div
-                className={`px-4 text-xs text-[#A0B0A0] ${
-                  msg.type === 'user' ? 'text-right' : 'text-left'
-                }`}
-              >
-                {msg.timestamp.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
+              <p className={`px-1 text-xs text-[var(--muted)] ${msg.type === "user" ? "text-right" : "text-left"}`}>
+                {msg.timestamp.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
                 })}
-              </div>
+              </p>
             </div>
           </div>
         ))}
 
-        {loading && (
-          <div className="flex justify-start">
-            <div className="max-w-md rounded-2xl rounded-tl-sm bg-white px-5 py-4 shadow-sm ring-1 ring-[#D4C5B0]">
-              <div className="flex items-center gap-2">
-                <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#B4C7B4]"></div>
-                <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#B4C7B4] [animation-delay:0.2s]"></div>
-                <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#B4C7B4] [animation-delay:0.4s]"></div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div ref={messagesEndRef} />
-      </div>
+      </section>
 
-      {/* Input Area */}
-      <div className="border-t border-[#D4C5B0] bg-[#3D3D3D] p-4 shadow-lg sm:p-5">
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
         <form onSubmit={onSubmit} className="flex items-end gap-3">
-          <div className="flex-1">
-            <textarea
-              rows={1}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  onSubmit(e);
-                }
-              }}
-              placeholder="Type your message..."
-              className="w-full resize-none rounded-3xl border-0 bg-[#F5EFE6] px-5 py-3.5 text-[15px] text-[#3D3D3D] placeholder-[#A0B0A0] focus:outline-none focus:ring-2 focus:ring-[#E07B39]"
-              disabled={loading}
-              style={{ minHeight: '48px', maxHeight: '120px' }}
-            />
-          </div>
+          <textarea
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit(e);
+              }
+            }}
+            placeholder="Type your message..."
+            className="qm-textarea min-h-[48px] max-h-[140px] flex-1 resize-none rounded-3xl px-4"
+            disabled={loading}
+          />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E07B39] text-white shadow-md transition-all hover:bg-[#D06B29] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="qm-button h-12 w-12 rounded-full p-0 text-lg font-semibold"
+            aria-label="Send"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            &gt;
           </button>
         </form>
-      </div>
+      </footer>
     </div>
   );
 }

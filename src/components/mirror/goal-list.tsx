@@ -12,41 +12,43 @@ export function GoalList() {
   useEffect(() => {
     fetch("/api/goals")
       .then((res) => res.json())
-      .then((data) => setGoals(data || []))
+      .then((data) => setGoals(Array.isArray(data) ? data : []))
       .catch(() => setGoals([]));
   }, []);
 
   return (
-    <div className="rounded-3xl bg-white p-8 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-xl font-light text-[#2B3E5F]">Your Goals</h2>
+    <div className="qm-panel p-7">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-3xl text-[#1f1f1b]">Your goals</h2>
+        {goal?.id && <span className="qm-badge">Selected</span>}
       </div>
+
       <div className="space-y-3">
         {goals.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-[#E8E5E0] bg-[#F5F3F0] p-8 text-center">
-            <p className="text-sm text-[#6B8CAE]">No goals yet</p>
-          </div>
+          <div className="qm-empty p-6 text-center text-sm">No goals yet.</div>
         )}
-        {goals.map((g) => (
-          <button
-            key={g.id}
-            onClick={() => setGoal(g)}
-            className={`group w-full rounded-2xl border-2 px-5 py-4 text-left transition-all ${
-              goal?.id === g.id
-                ? "border-[#2B3E5F] bg-[#2B3E5F] shadow-sm"
-                : "border-[#E8E5E0] bg-white hover:border-[#6B8CAE]"
-            }`}
-          >
-            <div className={`font-medium ${goal?.id === g.id ? "text-white" : "text-[#2B3E5F]"}`}>
-              {g.title}
-            </div>
-            {g.description && (
-              <div className={`mt-2 text-sm ${goal?.id === g.id ? "text-white/80" : "text-[#6B8CAE]"}`}>
-                {g.description}
-              </div>
-            )}
-          </button>
-        ))}
+
+        {goals.map((g) => {
+          const selected = goal?.id === g.id;
+          return (
+            <button
+              key={g.id}
+              onClick={() => setGoal(g)}
+              className={`w-full rounded-2xl border p-4 text-left transition-colors ${
+                selected
+                  ? "border-[#1f1f1b] bg-[#1f1f1b] text-white"
+                  : "border-[var(--border)] bg-[var(--surface)] hover:border-[#c8c3b2]"
+              }`}
+            >
+              <p className={`font-semibold ${selected ? "text-white" : "text-[#1f1f1b]"}`}>{g.title}</p>
+              {g.description && (
+                <p className={`mt-2 text-sm leading-relaxed ${selected ? "text-white/80" : "text-[var(--muted)]"}`}>
+                  {g.description}
+                </p>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

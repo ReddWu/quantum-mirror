@@ -16,6 +16,7 @@ export async function GET() {
   const dateKey = todayKey();
   const existing = await prisma.session.findFirst({
     where: { userId: session.user.id, dateKey },
+    include: { goal: true },
   });
   if (!existing) {
     return NextResponse.json({ exists: false }, { status: 200 });
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
   const dateKey = todayKey();
   const existing = await prisma.session.findFirst({
     where: { userId: session.user.id, dateKey },
+    include: { goal: true },
   });
   if (existing) {
     return NextResponse.json({ session: existing });
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
       dateKey,
       status: "started",
     },
+    include: { goal: true },
   });
   return NextResponse.json({ session: newSession });
 }
-

@@ -6,11 +6,7 @@ import { computeStreak } from "@/lib/streak";
 export default async function HistoryPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        请先登录。
-      </div>
-    );
+    return <div className="qm-warning p-4 text-sm">Please sign in first.</div>;
   }
 
   const sessions = await prisma.session.findMany({
@@ -30,38 +26,45 @@ export default async function HistoryPage() {
   const streak = computeStreak(completedDates);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">History</h1>
-        <div className="rounded-full bg-emerald-100 px-4 py-1 text-sm font-medium text-emerald-800">
-          Streak: {streak} days
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="qm-kicker">Archive</div>
+          <h1 className="mt-3 text-5xl text-[#1f1f1b]">History</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">Review consistency across completed sessions.</p>
         </div>
-      </div>
-      <div className="space-y-3">
-        {sessions.length === 0 && (
-          <div className="text-sm text-zinc-600">暂无记录。</div>
-        )}
-        {sessions.map((s) => (
-          <div
-            key={s.id}
-            className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="text-base font-semibold">{s.dateKey}</div>
-              <div className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-700">
-                {s.goal.title}
+        <div className="qm-subtle px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Current streak</div>
+          <div className="mt-1 text-2xl font-semibold text-[#1f1f1b]">{streak} days</div>
+        </div>
+      </header>
+
+      <section className="space-y-3">
+        {sessions.length === 0 && <div className="qm-empty p-5 text-sm">No history yet.</div>}
+
+        {sessions.map((s) => {
+          const completed = s.actionTasks.some((t) => t.completedAt);
+
+          return (
+            <article key={s.id} className="qm-panel p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">{s.dateKey}</div>
+                  <h2 className="mt-1 text-3xl text-[#1f1f1b]">{s.goal.title}</h2>
+                </div>
+                <span className={`qm-badge ${completed ? "" : "bg-[var(--surface-muted)] text-[var(--muted)]"}`}>
+                  {completed ? "Completed" : "In progress"}
+                </span>
               </div>
-              <div className="text-xs text-zinc-500">
-                Status: {s.status} · Actions: {s.actionTasks.length}
+
+              <div className="mt-4 grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-2">
+                <p>Status: {s.status}</p>
+                <p>Action tasks: {s.actionTasks.length}</p>
               </div>
-              {s.actionTasks.some((t) => t.completedAt) && (
-                <span className="text-xs text-emerald-600">Completed</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+            </article>
+          );
+        })}
+      </section>
     </div>
   );
 }
-
