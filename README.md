@@ -1,286 +1,261 @@
-# Quantum Mirror
+
+
+Quantum Mirror
 
 <div align="center">
-  <h3>与未来自我对话，重构现实，坍缩行动</h3>
-  <p>由 Gemini AI 驱动的目标实现和行动打卡应用</p>
+  <h3>Dialogue with Your Future Self, Reconstruct Reality, Collapse into Action</h3>
+  <p>A goal achievement and action check-in app powered by Gemini AI</p>
 </div>
 
-## 功能特性
 
-- **未来自我对话**：与已实现目标的未来自己对话，获得温和的挑战与叙事重写
-- **现实重构**：上传现实场景照片，AI 识别 3 个具体的未来差异点
-- **行动坍缩**：生成 10-20 分钟的可完成物理行动，拍照打卡后获得 AI 反馈
-- **连续打卡**：记录你的行动历史，保持连续打卡 streak
-- **安全保护**：自伤关键词检测，自动显示安全提示和求助资源
+Features
+	•	Future Self Dialogue: Converse with your future self who has already achieved the goal, receiving gentle challenges and narrative reframing
+	•	Reality Reconstruction: Upload photos of your current environment, and the AI identifies three concrete future differences
+	•	Action Collapse: Generate a 10–20 minute, achievable physical action; upload a photo to check in and receive AI feedback
+	•	Streak Tracking: Record your action history and maintain continuous check-in streaks
+	•	Safety Protection: Detect self-harm related keywords and automatically display safety guidance and support resources
 
-## 技术栈
+Tech Stack
+	•	Framework: Next.js 16 (App Router) + TypeScript
+	•	Styling: Tailwind CSS 4
+	•	Authentication: NextAuth.js (Google OAuth and Email supported)
+	•	Database: Prisma ORM (PostgreSQL, MySQL, SQLite supported)
+	•	AI: Google Gemini 1.5 (@google/generative-ai)
+	•	Image Storage: Cloudinary (optional)
+	•	State Management: Zustand
 
-- **框架**：Next.js 16 (App Router) + TypeScript
-- **样式**：Tailwind CSS 4
-- **认证**：NextAuth.js (支持 Google OAuth 和 Email)
-- **数据库**：Prisma ORM (支持 PostgreSQL、MySQL、SQLite)
-- **AI**：Google Gemini 1.5 (`@google/generative-ai`)
-- **图片存储**：Cloudinary（可选）
-- **状态管理**：Zustand
+Quick Start
 
-## 快速开始
+1. Clone the Repository
 
-### 1. 克隆项目
-
-```bash
 git clone <your-repo-url>
 cd quantum-mirror
-```
 
-### 2. 安装依赖
+2. Install Dependencies
 
-```bash
 npm install
-```
 
-### 3. 配置环境变量
+3. Configure Environment Variables
 
-复制 `.env` 示例文件并填入你的配置：
+Copy the .env example file and fill in your configuration:
 
-```bash
-# Gemini API（必需）
+# Gemini API (required)
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL_TEXT=gemini-1.5-flash
 GEMINI_MODEL_MULTI=gemini-1.5-flash
 
-# 数据库（必需）
-DATABASE_URL=file:./dev.db  # 本地开发使用 SQLite
+# Database (required)
+DATABASE_URL=file:./dev.db  # SQLite for local development
 
-# NextAuth（必需）
-AUTH_SECRET=your_random_secret_here  # 使用: openssl rand -base64 32
+# NextAuth (required)
+AUTH_SECRET=your_random_secret_here  # Generate with: openssl rand -base64 32
 
-# Google OAuth（可选）
+# Google OAuth (optional)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Email 认证（可选）
+# Email Authentication (optional)
 EMAIL_SERVER=
 EMAIL_FROM=
 
-# Cloudinary（可选）
+# Cloudinary (optional)
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
-```
 
-### 4. 初始化数据库
+4. Initialize the Database
 
-```bash
-# 生成 Prisma Client
+# Generate Prisma Client
 npx prisma generate
 
-# 推送数据库 schema
+# Push database schema
 npx prisma db push
-```
 
-### 5. 启动开发服务器
+5. Start the Development Server
 
-```bash
 npm run dev
-```
 
-访问 http://localhost:3000 查看应用。
+Visit http://localhost:3000 to view the app.
 
-## 项目结构
+Project Structure
 
-```
 quantum-mirror/
 ├── src/
-│   ├── app/                    # Next.js App Router 页面
-│   │   ├── api/               # API 路由
-│   │   │   ├── auth/          # NextAuth 认证
-│   │   │   ├── goals/         # 目标管理
-│   │   │   ├── mirror/        # 核心功能 API
-│   │   │   └── session/       # 会话管理
-│   │   ├── goals/             # 目标页面
-│   │   ├── history/           # 历史记录页面
-│   │   ├── session/           # 会话相关页面
-│   │   ├── layout.tsx         # 根布局
-│   │   ├── page.tsx           # 首页
-│   │   └── providers.tsx      # 上下文提供者
-│   ├── components/            # React 组件
-│   │   ├── mirror/           # 核心功能组件
-│   │   ├── ui/               # UI 组件
-│   │   └── navigation.tsx    # 导航栏
-│   ├── lib/                   # 工具函数和配置
-│   │   ├── auth.ts           # NextAuth 配置
-│   │   ├── gemini.ts         # Gemini API 集成
-│   │   ├── prisma.ts         # Prisma 客户端
-│   │   ├── safety.ts         # 安全检测
-│   │   ├── streak.ts         # 打卡计算
-│   │   ├── cloudinary.ts     # 图片上传
-│   │   └── validators.ts     # 数据验证
-│   ├── stores/                # Zustand 状态管理
-│   └── types/                 # TypeScript 类型定义
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── api/               # API routes
+│   │   │   ├── auth/          # NextAuth authentication
+│   │   │   ├── goals/         # Goal management
+│   │   │   ├── mirror/        # Core feature APIs
+│   │   │   └── session/       # Session management
+│   │   ├── goals/             # Goal pages
+│   │   ├── history/           # History pages
+│   │   ├── session/           # Session-related pages
+│   │   ├── layout.tsx         # Root layout
+│   │   ├── page.tsx           # Home page
+│   │   └── providers.tsx      # Context providers
+│   ├── components/            # React components
+│   │   ├── mirror/           # Core feature components
+│   │   ├── ui/               # UI components
+│   │   └── navigation.tsx    # Navigation bar
+│   ├── lib/                   # Utilities and configuration
+│   │   ├── auth.ts           # NextAuth configuration
+│   │   ├── gemini.ts         # Gemini API integration
+│   │   ├── prisma.ts         # Prisma client
+│   │   ├── safety.ts         # Safety detection
+│   │   ├── streak.ts         # Streak calculation
+│   │   ├── cloudinary.ts     # Image upload
+│   │   └── validators.ts     # Data validation
+│   ├── stores/                # Zustand state management
+│   └── types/                 # TypeScript type definitions
 ├── prisma/
-│   └── schema.prisma          # 数据库 schema
-├── public/                    # 静态资源
-├── DEPLOYMENT.md              # 详细部署指南
-└── README.md                  # 本文件
-```
+│   └── schema.prisma          # Database schema
+├── public/                    # Static assets
+├── DEPLOYMENT.md              # Detailed deployment guide
+└── README.md                  # This file
 
-## API 路由
+API Routes
 
-### 认证
-- `GET/POST /api/auth/[...nextauth]` - NextAuth 认证处理
+Authentication
+	•	GET/POST /api/auth/[…nextauth] – NextAuth authentication handler
 
-### 目标管理
-- `GET /api/goals` - 获取用户的所有目标
-- `POST /api/goals` - 创建新目标
+Goal Management
+	•	GET /api/goals – Retrieve all user goals
+	•	POST /api/goals – Create a new goal
 
-### 会话管理
-- `GET /api/session/today` - 获取今日会话
-- `POST /api/session/today` - 创建今日会话
+Session Management
+	•	GET /api/session/today – Retrieve today’s session
+	•	POST /api/session/today – Create today’s session
 
-### 核心功能
-- `POST /api/mirror/chat` - 未来自我对话
-- `POST /api/mirror/reframe` - 现实重构（图片分析）
-- `POST /api/mirror/action/generate` - 生成行动任务
-- `POST /api/mirror/action/checkin` - 行动打卡
+Core Features
+	•	POST /api/mirror/chat – Future self dialogue
+	•	POST /api/mirror/reframe – Reality reconstruction (image analysis)
+	•	POST /api/mirror/action/generate – Generate action tasks
+	•	POST /api/mirror/action/checkin – Action check-in
 
-## 前端路由
+Frontend Routes
+	•	/ – Home (logged out: product introduction; logged in: dashboard)
+	•	/goals – Goal creation and management
+	•	/session/today – Today’s session (future self dialogue)
+	•	/session/today/reframe – Reality reconstruction (image upload and analysis)
+	•	/session/today/action – Action generation and check-in
+	•	/history – History and streak statistics
 
-- `/` - 首页（未登录：产品介绍；已登录：仪表板）
-- `/goals` - 目标创建和管理
-- `/session/today` - 今日会话（未来自我对话）
-- `/session/today/reframe` - 现实重构（图片上传和分析）
-- `/session/today/action` - 行动生成和打卡
-- `/history` - 历史记录和连续打卡统计
+Core Feature Descriptions
 
-## 核心功能说明
+1. Future Self Dialogue
 
-### 1. 未来自我对话
+Users converse with a future self who has already achieved the goal. The AI:
+	•	Provides gentle, specific responses
+	•	Asks friendly but challenging questions
+	•	Rewrites the user’s narrative framework
+	•	Suggests next steps (for example, entering reality reconstruction or action generation)
 
-用户与已实现目标的未来自己进行对话，AI 会：
-- 提供温和、具体的回复
-- 给出友善的挑战性问题
-- 重写用户的叙事框架
-- 建议下一步行动（如：是否进入现实重构或行动生成）
+2. Reality Reconstruction
 
-### 2. 现实重构
+Users upload photos of their current environment. Through multimodal analysis, the AI:
+	•	Identifies three concrete future differences (objects, layout, behavioral traces, etc.)
+	•	Provides an 80–150 word narrated description
+	•	Supplies cues for subsequent action generation
 
-用户上传当前环境的照片，AI 通过多模态分析：
-- 识别 3 个具体的未来差异点（物件、布局、行为痕迹等）
-- 提供 80-150 字的旁白描述
-- 为后续行动生成提供线索
+3. Action Collapse
 
-### 3. 行动坍缩
+Based on dialogue and reconstruction results, the AI generates:
+	•	A physical action that can be completed in 10–20 minutes
+	•	Clear step-by-step guidance
+	•	The rationale behind the action
+	•	A requirement to upload a photo as proof of completion
 
-基于对话和重构结果，AI 生成：
-- 10-20 分钟可完成的物理行动
-- 具体的步骤指导
-- 行动的理由说明
-- 需要拍照证明完成
+4. Action Check-In
 
-### 4. 行动打卡
+After completing the action, users upload a photo and receive:
+	•	Confirmation and feedback
+	•	One sustainable micro-adjustment suggestion
+	•	A prompt for the next day’s action
 
-用户完成行动后上传照片，AI 提供：
-- 确认和反馈
-- 一个可持续的微调建议
-- 明日行动提示
+5. Safety Protection
 
-### 5. 安全保护
+The system detects self-harm related keywords. If detected, it will:
+	•	Immediately return a safety notice
+	•	Display crisis hotline information
+	•	Emphasize the tool’s non-medical nature
 
-系统会检测用户输入中的自伤关键词，如果检测到会：
-- 立即返回安全提示
-- 显示求助热线信息
-- 强调工具的性质（非医疗服务）
+Deployment
 
-## 部署
+For detailed deployment instructions, see DEPLOYMENT.md.
 
-详细的部署指南请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)。
+Quick Deployment to Vercel
+	1.	Push the code to GitHub
+	2.	Import the project into Vercel
+	3.	Configure environment variables
+	4.	Deploy
 
-### 快速部署到 Vercel
+Development
 
-1. 将代码推送到 GitHub
-2. 在 Vercel 导入项目
-3. 配置环境变量
-4. 部署完成
+Build the Project
 
-## 开发
-
-### 构建项目
-
-```bash
 npm run build
-```
 
-### 运行生产版本
+Run the Production Version
 
-```bash
 npm start
-```
 
-### 代码检查
+Lint the Code
 
-```bash
 npm run lint
-```
 
-### 数据库管理
+Database Management
 
-```bash
-# 打开 Prisma Studio（可视化数据库管理）
+# Open Prisma Studio (visual database management)
 npx prisma studio
 
-# 创建数据库迁移
+# Create a database migration
 npx prisma migrate dev --name your_migration_name
 
-# 重置数据库
+# Reset the database
 npx prisma migrate reset
-```
 
-## 环境变量说明
+Environment Variables Reference
 
-| 变量名 | 必需 | 说明 |
-|--------|------|------|
-| `GEMINI_API_KEY` | 是 | Google Gemini API 密钥 |
-| `GEMINI_MODEL_TEXT` | 否 | 文本模型名称（默认：gemini-1.5-flash） |
-| `GEMINI_MODEL_MULTI` | 否 | 多模态模型名称（默认：gemini-1.5-flash） |
-| `DATABASE_URL` | 是 | 数据库连接字符串 |
-| `AUTH_SECRET` | 是 | NextAuth 加密密钥 |
-| `GOOGLE_CLIENT_ID` | 否 | Google OAuth 客户端 ID |
-| `GOOGLE_CLIENT_SECRET` | 否 | Google OAuth 客户端密钥 |
-| `EMAIL_SERVER` | 否 | SMTP 服务器配置 |
-| `EMAIL_FROM` | 否 | 发件人邮箱地址 |
-| `CLOUDINARY_CLOUD_NAME` | 否 | Cloudinary 云名称 |
-| `CLOUDINARY_API_KEY` | 否 | Cloudinary API 密钥 |
-| `CLOUDINARY_API_SECRET` | 否 | Cloudinary API 密钥 |
+Variable Name	Required	Description
+GEMINI_API_KEY	Yes	Google Gemini API key
+GEMINI_MODEL_TEXT	No	Text model name (default: gemini-1.5-flash)
+GEMINI_MODEL_MULTI	No	Multimodal model name (default: gemini-1.5-flash)
+DATABASE_URL	Yes	Database connection string
+AUTH_SECRET	Yes	NextAuth encryption secret
+GOOGLE_CLIENT_ID	No	Google OAuth client ID
+GOOGLE_CLIENT_SECRET	No	Google OAuth client secret
+EMAIL_SERVER	No	SMTP server configuration
+EMAIL_FROM	No	Sender email address
+CLOUDINARY_CLOUD_NAME	No	Cloudinary cloud name
+CLOUDINARY_API_KEY	No	Cloudinary API key
+CLOUDINARY_API_SECRET	No	Cloudinary API secret
 
-## 安全注意事项
+Security Notes
+	1.	This application is not a medical or psychological treatment service
+	•	It is intended solely for self-reflection and action planning
+	•	It should not replace professional mental health services
+	2.	Data privacy
+	•	All user data is stored in your own database
+	•	Gemini API usage follows Google’s privacy policy
+	3.	API key protection
+	•	Never hard-code API keys in source code
+	•	Use environment variables for sensitive information
+	•	Rotate API keys regularly
 
-1. **本应用不是医疗或心理治疗服务**
-   - 仅作为自我反思和行动规划工具使用
-   - 不应替代专业的心理健康服务
+Contributing
 
-2. **数据隐私**
-   - 所有用户数据存储在你自己的数据库中
-   - Gemini API 调用遵循 Google 的隐私政策
+Issues and Pull Requests are welcome.
 
-3. **API 密钥保护**
-   - 永远不要在代码中硬编码 API 密钥
-   - 使用环境变量管理敏感信息
-   - 定期轮换 API 密钥
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 许可证
+License
 
 MIT License
 
-## 支持
+Support
 
-如有问题或建议，请：
-- 提交 GitHub Issue
-- 查看 [DEPLOYMENT.md](./DEPLOYMENT.md) 获取详细帮助
+If you have questions or suggestions:
+	•	Submit a GitHub Issue
+	•	Check DEPLOYMENT.md for detailed help
 
----
+⸻
 
-**注意**：Quantum Mirror 是一个自我反思和行动规划工具，不是医疗或心理治疗服务。如果你有自我伤害想法或严重的心理健康问题，请立即联系专业医疗机构或紧急求助热线。
+Note: Quantum Mirror is a self-reflection and action planning tool, not a medical or psychological treatment service. If you are experiencing self-harm thoughts or severe mental health issues, please contact professional medical services or an emergency hotline immediately.
