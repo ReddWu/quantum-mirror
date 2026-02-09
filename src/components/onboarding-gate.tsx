@@ -22,11 +22,12 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
     fetch("/api/questionnaire/status", { cache: "no-store" })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch questionnaire status");
+        if (!res.ok) return null;
         return res.json();
       })
-      .then((data: { completed?: boolean }) => {
+      .then((data: { completed?: boolean } | null) => {
         if (cancelled) return;
+        if (!data) return;
         const completed = Boolean(data?.completed);
 
         if (!completed && pathname !== "/onboarding") {
