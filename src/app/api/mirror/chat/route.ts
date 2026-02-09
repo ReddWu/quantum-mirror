@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { chatSchema } from "@/lib/validators";
 import { streamFutureSelfReply } from "@/lib/gemini";
@@ -8,7 +8,7 @@ import { hasSelfHarmRisk, SAFETY_NOTICE } from "@/lib/safety";
 import { buildQuestionnaireContext } from "@/lib/questionnaire";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

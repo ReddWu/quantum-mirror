@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { actionCheckinSchema } from "@/lib/validators";
 import { generateCheckinFeedback } from "@/lib/gemini";
 import { uploadImageFromUrl } from "@/lib/cloudinary";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

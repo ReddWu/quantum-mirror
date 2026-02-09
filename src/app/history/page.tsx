@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeStreak } from "@/lib/streak";
 
 export default async function HistoryPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
   if (!session?.user?.id) {
     return <div className="qm-warning p-4 text-sm">Please sign in first.</div>;
   }
